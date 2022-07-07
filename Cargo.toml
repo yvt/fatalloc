@@ -1,0 +1,22 @@
+[package]
+name = "fatalloc"
+version = "0.1.0"
+edition = "2021"
+license = "LGPL-3.0-or-later"
+description = '"Fault tolerant" memory allocator'
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+libc = { version = "0.2.126", default-features = false }
+rlsf = "0.1.2"
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"
+lto = "fat"
+codegen-units = 1
+
