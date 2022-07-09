@@ -8,31 +8,6 @@ use rlsf::CAlloc;
 
 static ALLOC: crate::FatAlloc<rlsf::GlobalTlsf> = crate::FatAlloc(rlsf::GlobalTlsf::INIT);
 
-// Preserve the symbols
-#[used]
-#[no_mangle]
-static FATALLOC_PUBLIC_SYMBOLS: (
-    unsafe extern "C" fn(usize) -> *mut c_void,
-    unsafe extern "C" fn(usize) -> *mut c_void,
-    unsafe extern "C" fn(usize) -> *mut c_void,
-    unsafe extern "C" fn(usize, usize) -> *mut c_void,
-    unsafe extern "C" fn(*mut *mut c_void, usize, usize) -> c_int,
-    unsafe extern "C" fn(usize, usize) -> *mut c_void,
-    unsafe extern "C" fn(usize, usize) -> *mut c_void,
-    unsafe extern "C" fn(*mut c_void, usize) -> *mut c_void,
-    unsafe extern "C" fn(*mut c_void),
-) = (
-    malloc,
-    valloc,
-    pvalloc,
-    calloc,
-    posix_memalign,
-    aligned_alloc,
-    memalign,
-    realloc,
-    free,
-);
-
 /// The alignment guaranteed by `malloc`.
 const MIN_ALIGN: usize = match () {
     #[cfg(all(any(
