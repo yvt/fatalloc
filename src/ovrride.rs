@@ -64,6 +64,15 @@ pub unsafe extern "C" fn malloc(size: usize) -> *mut c_void {
     aligned_alloc(MIN_ALIGN, size)
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn malloc_usable_size(p: *mut c_void) -> usize {
+    if let Some(p) = NonNull::new(p) {
+        crate::CAllocUsableSize::allocation_usable_size(&ALLOC, p.cast())
+    } else {
+        0
+    }
+}
+
 #[inline]
 fn page_size() -> usize {
     unsafe { libc::sysconf(libc::_SC_PAGESIZE) as usize }

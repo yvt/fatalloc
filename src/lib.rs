@@ -25,6 +25,7 @@ const MIN_ALIGN: usize = core::mem::align_of::<usize>();
 
 const KEY_MARGIN: usize = 0x123456789abcdefu64 as usize;
 const KEY_CANARY: usize = 0x23435243643547au64 as usize;
+const KEY_SIZE: usize = 0x1ae9deaf526c83du64 as usize;
 
 #[inline]
 fn mangle(x: usize, key: usize) -> usize {
@@ -39,6 +40,7 @@ fn demangle(x: usize, key: usize) -> usize {
 #[derive(Debug, PartialEq)]
 struct AllocInfo {
     margin: usize,
+    user_size: usize,
     outer_ptr: NonNull<u8>,
 }
 
@@ -58,11 +60,20 @@ impl AllocInfo {
             return Err("metadata corrupted");
         }
 
+        let user_size = demangle(
+            meta_ptr.cast::<usize>().wrapping_add(1).read(),
+            user_ptr.as_ptr() as usize ^ KEY_SIZE,
+        );
+
         // Find the outer allocation
         let outer_ptr = user_ptr.as_ptr().wrapping_sub(margin);
         let outer_ptr = NonNull::new(outer_ptr).ok_or("null")?;
 
-        let this = Self { margin, outer_ptr };
+        let this = Self {
+            margin,
+            outer_ptr,
+            user_size,
+        };
 
         // Check round-trip conversion
         debug_assert_eq!(this.user_ptr(), user_ptr.as_ptr());
@@ -94,6 +105,10 @@ impl AllocInfo {
         meta_ptr
             .cast::<usize>()
             .write(mangle(self.margin, user_ptr as usize ^ KEY_MARGIN));
+        meta_ptr
+            .cast::<usize>()
+            .wrapping_add(1)
+            .write(mangle(self.user_size, user_ptr as usize ^ KEY_SIZE));
 
         // Check round-trip conversion
         debug_assert_eq!(
@@ -126,7 +141,11 @@ unsafe impl<T: CAlloc> CAlloc for FatAlloc<T> {
 
         // Allocate memory
         let outer_ptr = CAlloc::allocate(&self.0, outer_layout)?;
-        let alloc = AllocInfo { margin, outer_ptr };
+        let alloc = AllocInfo {
+            margin,
+            outer_ptr,
+            user_size: layout.size(),
+        };
 
         // Write metadata to one of the margins
         unsafe { alloc.write_meta() };
@@ -147,7 +166,9 @@ unsafe impl<T: CAlloc> CAlloc for FatAlloc<T> {
         new_layout: alloc::Layout,
     ) -> Option<NonNull<u8>> {
         match AllocInfo::from_user_ptr(ptr) {
-            Ok(AllocInfo { outer_ptr, margin }) => {
+            Ok(AllocInfo {
+                outer_ptr, margin, ..
+            }) => {
                 let new_layout = alloc::Layout::from_size_align(new_layout.size(), margin).ok()?;
                 let (new_outer_layout, new_margin) = outer_layout_and_margin(new_layout)?;
                 assert_eq!(margin, new_margin);
@@ -155,6 +176,7 @@ unsafe impl<T: CAlloc> CAlloc for FatAlloc<T> {
                 let alloc = AllocInfo {
                     outer_ptr: new_outer_ptr,
                     margin: new_margin,
+                    user_size: new_layout.size(),
                 };
                 alloc.write_meta();
                 Some(NonNull::new(alloc.user_ptr()).unwrap())
@@ -162,6 +184,25 @@ unsafe impl<T: CAlloc> CAlloc for FatAlloc<T> {
             Err(e) => {
                 warn!("rejecting the reallocation request for {ptr:p}: {e}");
                 None
+            }
+        }
+    }
+}
+
+unsafe trait CAllocUsableSize {
+    /// `malloc_usable_size`, which is [lacked][1] by `rlsf`
+    ///
+    /// [1]: https://github.com/yvt/rlsf/issues/2
+    unsafe fn allocation_usable_size(&self, ptr: NonNull<u8>) -> usize;
+}
+
+unsafe impl<T: CAlloc> CAllocUsableSize for FatAlloc<T> {
+    unsafe fn allocation_usable_size(&self, ptr: NonNull<u8>) -> usize {
+        match AllocInfo::from_user_ptr(ptr) {
+            Ok(AllocInfo { user_size, .. }) => user_size,
+            Err(e) => {
+                warn!("rejecting the size query for {ptr:p}: {e}");
+                0
             }
         }
     }
