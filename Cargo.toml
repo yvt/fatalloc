@@ -12,9 +12,6 @@ crate-type = ["cdylib"]
 libc = { version = "0.2.126", default-features = false }
 rlsf = "0.1.2"
 
-[build-dependencies]
-cc = "1.0"
-
 [profile.dev]
 panic = "abort"
 
