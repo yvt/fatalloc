@@ -18,7 +18,9 @@ fn panic_handler(info: &core::panic::PanicInfo) -> ! {
     unsafe { libc::abort() };
 }
 
-struct FatAlloc<T>(T);
+struct FatAlloc<T> {
+    alloc: T,
+}
 
 const MIN_MARGIN: usize = core::mem::size_of::<usize>() * 16;
 const MIN_ALIGN: usize = core::mem::align_of::<usize>();
@@ -134,13 +136,19 @@ fn outer_layout_and_margin(layout: alloc::Layout) -> Option<(alloc::Layout, usiz
     Some((outer_layout, margin))
 }
 
+impl<T> FatAlloc<T> {
+    const fn new(alloc: T) -> Self {
+        Self { alloc }
+    }
+}
+
 unsafe impl<T: CAlloc> CAlloc for FatAlloc<T> {
     fn allocate(&self, layout: alloc::Layout) -> Option<NonNull<u8>> {
         // Add margins
         let (outer_layout, margin) = outer_layout_and_margin(layout)?;
 
         // Allocate memory
-        let outer_ptr = CAlloc::allocate(&self.0, outer_layout)?;
+        let outer_ptr = CAlloc::allocate(&self.alloc, outer_layout)?;
         let alloc = AllocInfo {
             margin,
             outer_ptr,
@@ -155,7 +163,7 @@ unsafe impl<T: CAlloc> CAlloc for FatAlloc<T> {
 
     unsafe fn deallocate(&self, ptr: NonNull<u8>) {
         match AllocInfo::from_user_ptr(ptr) {
-            Ok(AllocInfo { outer_ptr, .. }) => CAlloc::deallocate(&self.0, outer_ptr),
+            Ok(AllocInfo { outer_ptr, .. }) => CAlloc::deallocate(&self.alloc, outer_ptr),
             Err(e) => warn!("ignoring the deallocation request for {ptr:p}: {e}"),
         }
     }
@@ -172,7 +180,7 @@ unsafe impl<T: CAlloc> CAlloc for FatAlloc<T> {
                 let new_layout = alloc::Layout::from_size_align(new_layout.size(), margin).ok()?;
                 let (new_outer_layout, new_margin) = outer_layout_and_margin(new_layout)?;
                 assert_eq!(margin, new_margin);
-                let new_outer_ptr = CAlloc::reallocate(&self.0, outer_ptr, new_outer_layout)?;
+                let new_outer_ptr = CAlloc::reallocate(&self.alloc, outer_ptr, new_outer_layout)?;
                 let alloc = AllocInfo {
                     outer_ptr: new_outer_ptr,
                     margin: new_margin,

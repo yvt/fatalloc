@@ -6,7 +6,7 @@ use core::{
 use libc::{c_int, c_void};
 use rlsf::CAlloc;
 
-static ALLOC: crate::FatAlloc<rlsf::GlobalTlsf> = crate::FatAlloc(rlsf::GlobalTlsf::INIT);
+static ALLOC: crate::FatAlloc<rlsf::GlobalTlsf> = crate::FatAlloc::new(rlsf::GlobalTlsf::INIT);
 
 /// The alignment guaranteed by `malloc`.
 const MIN_ALIGN: usize = match () {
