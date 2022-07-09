@@ -10,22 +10,24 @@ static ALLOC: crate::FatAlloc<rlsf::GlobalTlsf> = crate::FatAlloc(rlsf::GlobalTl
 
 // Preserve the symbols
 #[used]
-static _F: (
+#[no_mangle]
+static FATALLOC_PUBLIC_SYMBOLS: (
     unsafe extern "C" fn(usize) -> *mut c_void,
-    //unsafe extern "C" fn(usize) -> *mut c_void,
-    //unsafe extern "C" fn(usize) -> *mut c_void,
+    unsafe extern "C" fn(usize) -> *mut c_void,
+    unsafe extern "C" fn(usize) -> *mut c_void,
     unsafe extern "C" fn(usize, usize) -> *mut c_void,
     unsafe extern "C" fn(*mut *mut c_void, usize, usize) -> c_int,
-    //unsafe extern "C" fn(usize, usize) -> *mut c_void,
+    unsafe extern "C" fn(usize, usize) -> *mut c_void,
     unsafe extern "C" fn(usize, usize) -> *mut c_void,
     unsafe extern "C" fn(*mut c_void, usize) -> *mut c_void,
     unsafe extern "C" fn(*mut c_void),
 ) = (
-    malloc, //valloc,
-    //pvalloc,
+    malloc,
+    valloc,
+    pvalloc,
     calloc,
     posix_memalign,
-    //aligned_alloc,
+    aligned_alloc,
     memalign,
     realloc,
     free,
@@ -67,10 +69,12 @@ fn page_size() -> usize {
     unsafe { libc::sysconf(libc::_SC_PAGESIZE) as usize }
 }
 
+#[no_mangle]
 pub unsafe extern "C" fn valloc(size: usize) -> *mut c_void {
     aligned_alloc(page_size(), size)
 }
 
+#[no_mangle]
 pub unsafe extern "C" fn pvalloc(size: usize) -> *mut c_void {
     let page_size = page_size();
     if let Some(size) = size
@@ -113,6 +117,7 @@ pub unsafe extern "C" fn posix_memalign(
     }
 }
 
+#[no_mangle]
 pub unsafe extern "C" fn aligned_alloc(alignment: usize, size: usize) -> *mut c_void {
     let layout = Layout::from_size_align(size, alignment).ok();
     if let Some(ptr) = layout.and_then(|layout| CAlloc::allocate(&ALLOC, layout)) {
