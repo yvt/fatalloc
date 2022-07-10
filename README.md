@@ -2,12 +2,12 @@
 
 # `fatalloc`
 
-**"Fault tolerant" memory allocator for Linux**
+**“Fault tolerant” memory allocator for Linux**
 
 </div>
 
 This library provides a drop-in replacement for the standard C allocation
-functions. Add `libfatalloc.so` to `LD_PRELOAD` to "fix" minor heap overruns
+functions. Add `libfatalloc.so` to `LD_PRELOAD` to “fix” minor heap overruns
 in faulty software.
 
 Using this library does not fix **C**VEs or improve security—if anything,
