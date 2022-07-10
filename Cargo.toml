@@ -10,6 +10,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 libc = { version = "0.2.126", default-features = false }
+pin-project = "1.0.11"
 rlsf = "0.1.2"
 
 [profile.dev]
