@@ -19,7 +19,7 @@ struct FatAlloc<T> {
     alloc: T,
 }
 
-const MIN_MARGIN: usize = core::mem::size_of::<usize>() * 16;
+const MIN_MARGIN: usize = core::mem::size_of::<usize>() * 64;
 const MIN_ALIGN: usize = core::mem::align_of::<usize>();
 
 const KEY_MARGIN: usize = 0x123456789abcdefu64 as usize;
