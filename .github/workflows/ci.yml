@@ -1,0 +1,48 @@
+name: CI
+on:
+  push:
+  pull_request:
+
+jobs:
+  dist:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - target: x86_64-unknown-linux-gnu
+          os: ubuntu-22.04
+          name: x86_64-linux
+        - target: i686-unknown-linux-gnu
+          os: ubuntu-22.04
+          name: i686-linux
+          cross: true
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          target: ${{ matrix.target }}
+
+      - name: Build release binary
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          use-cross: ${{ matrix.cross }}
+          args: --release --locked --target ${{ matrix.target }}
+      
+      - name: Test
+        if: matrix.name == 'x86_64-linux'
+        run: |
+          export LD_PRELOAD=target/${{ matrix.target }}/release/libfatalloc.so
+          # Run programs that use system allocator (which excludes rustc)
+          # The more programs, the more complex usages, the better!
+          cargo update --dry-run
+          ip addr
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: libfatalloc-${{ matrix.name }}
+          path: target/${{ matrix.target }}/release/libfatalloc.so
+
