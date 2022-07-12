@@ -32,6 +32,13 @@ To cross-build for x86 (32-bit) applications:
 export LD_PRELOAD=(nix build --no-link --print-out-paths github:yvt/fatalloc#defaultPackage.i686-linux)/lib/libfatalloc.so)
 ```
 
+### Traditional Linux
+
+Go to [the Actions tab][3], select the latest CI run, and download a
+precompiled binary from the Artifacts section.
+
+*Note:* [You must be logged in to GitHub to download artifacts.][4]
+
 ## License
 
 This program is licensed under the GNU Lesser General Public License version 3
@@ -39,4 +46,6 @@ or later.
 
 [1]: https://docs.microsoft.com/en-us/windows/win32/win7appqual/fault-tolerant-heap
 [2]: https://nixos.wiki/wiki/Flakes
+[3]: https://github.com/yvt/fatalloc/actions/workflows/ci.yml
+[4]: https://github.community/t/public-read-access-to-actions-artifacts/17363/11
 
