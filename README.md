@@ -17,6 +17,14 @@ and your workflow uninterrupted as long as possible. Use at your own peril.
 
 Inspired by Windows [Fault Tolerant Heap][1]. Written in Rust(🚀).
 
+## Features
+
+- [x] Real-time memory allocator with good throughput (implemented by
+  [`rlsf`][5])
+- [x] Insert padding around allocations to mitigate heap overruns
+- [x] Ignore invalid deallocation requests
+- [ ] Delay deallocation to nullify brief use-after-free
+
 ## Usage
 
 ### Nix [Flake][2]
@@ -48,4 +56,5 @@ or later.
 [2]: https://nixos.wiki/wiki/Flakes
 [3]: https://github.com/yvt/fatalloc/actions/workflows/ci.yml
 [4]: https://github.community/t/public-read-access-to-actions-artifacts/17363/11
+[5]: https://github.com/yvt/rlsf
 
